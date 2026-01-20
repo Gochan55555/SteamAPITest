@@ -16,7 +16,7 @@ public static class GuestAuth
             PlayerPrefs.Save();
         }
         return id; 
-    }
+    } 
 
     public static string GetOrCreateGuestName()
     {
