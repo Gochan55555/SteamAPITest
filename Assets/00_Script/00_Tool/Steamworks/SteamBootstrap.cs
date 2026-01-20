@@ -11,7 +11,6 @@ public class SteamBootstrap : MonoBehaviour
     {
         TryInitSteam();
     }
-
     void TryInitSteam()
     {
         try
