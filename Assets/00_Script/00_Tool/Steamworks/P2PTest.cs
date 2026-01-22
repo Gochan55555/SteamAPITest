@@ -22,13 +22,30 @@ public class P2PTest : MonoBehaviour
 
     // 旧FriendSelectUI互換（残っててもコンパイル通す用）
     private CSteamID currentTarget;
-
+    void OnEnable()
+    {
+        if (lobby != null)
+            lobby.OnChatMessageEvent += HandleLobbyChatMessage;
+    }
+    void OnDisable()
+    {
+        if (lobby != null)
+            lobby.OnChatMessageEvent -= HandleLobbyChatMessage;
+    }
     void Update()
     {
         RefreshLobbyState();
         ReceiveLoop();
     }
 
+    private void HandleLobbyChatMessage(CSteamID from, string text)
+    {
+        // 表示名はロビーnick優先
+        string fromName = (lobby != null) ? lobby.GetMemberDisplayName(from) : from.m_SteamID.ToString();
+
+        chatLog.Add($"{fromName}: {text}");
+        TrimLog();
+    }
     private void RefreshLobbyState()
     {
         if (lobby == null) return;
@@ -97,22 +114,12 @@ public class P2PTest : MonoBehaviour
             return;
         }
 
-        var me = SteamUser.GetSteamID();
-        var name = lobby.LocalDisplayName; // ★ロビーnick
+        // ★ロビーの公式チャットに送る（P2P不要で確実に届く）
+        byte[] bytes = Encoding.UTF8.GetBytes(text);
+        bool ok = SteamMatchmaking.SendLobbyChatMsg(lobby.CurrentLobby, bytes, bytes.Length);
 
-        // 自分の画面にも表示
-        chatLog.Add($"{name}: {text}");
-        TrimLog();
-
-        // ロビーメンバー全員へ（自分以外）
-        var members = lobby.GetLobbyMembers();
-        foreach (var m in members)
-        {
-            if (m == me) continue;
-
-            // CHAT|本文（送信者名は受信側でfromから引く。改ざんしにくい）
-            SendTo(m, $"CHAT|{text}");
-        }
+        if (!ok)
+            AddSystem("チャット送信失敗（SendLobbyChatMsg=false）");
     }
 
     // =========================

@@ -1,7 +1,8 @@
+using Steamworks;
 using System;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
-using Steamworks;
 
 public class LobbyTest : MonoBehaviour
 {
@@ -11,6 +12,8 @@ public class LobbyTest : MonoBehaviour
     private Callback<LobbyChatUpdate_t> cbLobbyChatUpdate;
 
     private CSteamID currentLobby;
+    private Callback<LobbyChatMsg_t> cbLobbyChatMsg;
+    public event Action<CSteamID, string> OnChatMessageEvent;
 
     public CSteamID CurrentLobby => currentLobby;
     public bool IsInLobby => currentLobby.m_SteamID != 0;
@@ -40,6 +43,7 @@ public class LobbyTest : MonoBehaviour
         cbJoinRequested = Callback<GameLobbyJoinRequested_t>.Create(OnJoinRequested);
         cbLobbyEntered = Callback<LobbyEnter_t>.Create(OnLobbyEntered);
         cbLobbyChatUpdate = Callback<LobbyChatUpdate_t>.Create(OnLobbyChatUpdate);
+        cbLobbyChatMsg = Callback<LobbyChatMsg_t>.Create(OnLobbyChatMsg);
     }
 
     void Update()
@@ -84,6 +88,33 @@ public class LobbyTest : MonoBehaviour
         GUILayout.EndArea();
     }
     // ====== Nickname ======
+    private void OnLobbyChatMsg(LobbyChatMsg_t data)
+    {
+        if (!IsInLobby) return;
+        if (currentLobby.m_SteamID != data.m_ulSteamIDLobby) return;
+
+        // 送信者
+        CSteamID sender;
+        EChatEntryType entryType;
+        byte[] buffer = new byte[4096];
+
+        int len = SteamMatchmaking.GetLobbyChatEntry(
+            new CSteamID(data.m_ulSteamIDLobby),
+            (int)data.m_iChatID,
+            out sender,
+            buffer,
+            buffer.Length,
+            out entryType
+        );
+
+        if (len <= 0) return;
+
+        // byte[] -> string（UTF8）
+        string text = Encoding.UTF8.GetString(buffer, 0, len);
+
+        // 自分のnickを優先して表示したいならGetMemberDisplayName(sender)使える
+        OnChatMessageEvent?.Invoke(sender, text);
+    }
 
     /// <summary>
     /// ロビー内の表示名を設定（Join/Create前に呼ぶ）
