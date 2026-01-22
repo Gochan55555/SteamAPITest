@@ -220,6 +220,7 @@ GameObject:
   - component: {fileID: 1301712852}
   - component: {fileID: 1301712851}
   - component: {fileID: 1301712853}
+  - component: {fileID: 1301712854}
   m_Layer: 0
   m_Name: LobbySystem
   m_TagString: Untagged
@@ -267,14 +268,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ebbddbcc080d10549b4c38f8103e334c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LobbyBrowser
-  showOnGUI: 0
+  showOnGUI: 1
   uiRect:
     serializedVersion: 2
     x: 10
     y: 200
-    width: 420
-    height: 260
-  lobby: {fileID: 0}
+    width: 200
+    height: 100
+  lobby: {fileID: 1301712851}
+--- !u!114 &1301712854
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1301712850}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46eb761db0087d04fb0a7b98e35888cf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SteamLobbyUI
+  lobby: {fileID: 1301712851}
+  browser: {fileID: 1301712853}
+  p2p: {fileID: 1945406727}
 --- !u!1 &1415171044
 GameObject:
   m_ObjectHideFlags: 0

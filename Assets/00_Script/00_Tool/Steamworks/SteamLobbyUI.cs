@@ -50,8 +50,19 @@ public class SteamLobbyUI : MonoBehaviour
 
     void OnGUI()
     {
-        var left = new Rect(10, 10, 420, 220);
-        var right = new Rect(440, 10, 420, 220);
+        // ★他OnGUIが汚したGUI状態を強制リセット（これが効く）
+        GUI.enabled = true;
+        GUI.color = Color.white;
+        GUI.backgroundColor = Color.white;
+        GUI.contentColor = Color.white;
+
+        // 画面サイズに追従（固定560はやめる）
+        float margin = 10f;
+        float w = Mathf.Min(420f, (Screen.width - margin * 3f) * 0.5f);
+        float h = Screen.height - margin * 2f;
+
+        var left = new Rect(margin, margin, w, h);
+        var right = new Rect(margin + w + margin, margin, w, h);
 
         DrawLeft(left);
         DrawRight(right);
@@ -205,16 +216,27 @@ public class SteamLobbyUI : MonoBehaviour
 
     private void DrawRight(Rect rect)
     {
-        if (p2p == null) return;
+        GUILayout.BeginArea(rect, GUI.skin.box);
 
-        if (lobby != null && lobby.IsInLobby)
-            p2p.DrawChatUI(rect);
-        else
+        if (p2p == null)
         {
-            GUILayout.BeginArea(rect, GUI.skin.box);
             GUILayout.Label("Chat");
-            GUILayout.Label("ロビーに参加すると表示されます");
+            GUILayout.Label("ERROR: P2PTest が未設定");
             GUILayout.EndArea();
+            return;
         }
+
+        if (lobby == null)
+        {
+            GUILayout.Label("Chat");
+            GUILayout.Label("ERROR: LobbyTest が未設定");
+            GUILayout.EndArea();
+            return;
+        }
+
+        // ★ここでチャットUI描画（中でBeginAreaしない版）
+        p2p.DrawChatUI(rect);
+
+        GUILayout.EndArea();
     }
 }

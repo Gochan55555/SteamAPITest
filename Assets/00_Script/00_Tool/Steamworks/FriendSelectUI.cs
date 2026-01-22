@@ -22,7 +22,7 @@ public class FriendSelectUI : MonoBehaviour
 
     void OnGUI()
     {
-        GUILayout.BeginArea(new Rect(500, 10, 320, 400), GUI.skin.box);
+        GUILayout.BeginArea(new Rect(50000, 10, 320, 400), GUI.skin.box);
         GUILayout.Label("Send Target (Friends)");
 
         if (GUILayout.Button("Refresh", GUILayout.Height(25)))

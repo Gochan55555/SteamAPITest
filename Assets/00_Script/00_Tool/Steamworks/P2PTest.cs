@@ -59,13 +59,11 @@ public class P2PTest : MonoBehaviour
     // ★SteamLobbyUIから呼ぶ（P2PTestが直接OnGUIしない）
     public void DrawChatUI(Rect rect)
     {
-        GUILayout.BeginArea(rect, GUI.skin.box);
         GUILayout.Label("Room Chat");
 
         if (!inLobby || lobby == null || !lobby.IsInLobby)
         {
             GUILayout.Label("ロビー未参加（参加するとチャットできます）");
-            GUILayout.EndArea();
             return;
         }
 
@@ -85,8 +83,6 @@ public class P2PTest : MonoBehaviour
             SendChatToLobby(msg);
         }
         GUILayout.EndHorizontal();
-
-        GUILayout.EndArea();
     }
 
     // =========================
