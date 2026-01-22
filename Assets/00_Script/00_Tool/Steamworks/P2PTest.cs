@@ -12,13 +12,15 @@ public class P2PTest : MonoBehaviour
     private const int Channel = 0;
     private const int SEND_RELIABLE = 8;
 
-    private CSteamID hostId;
     private bool inLobby;
+    private CSteamID hostId;
 
-    // chat
+    // Chat state
     private readonly List<string> chatLog = new();
     private string chatInput = "";
     private Vector2 chatScroll;
+
+    // 旧FriendSelectUI互換（残っててもコンパイル通す用）
     private CSteamID currentTarget;
 
     void Update()
@@ -31,44 +33,38 @@ public class P2PTest : MonoBehaviour
     {
         if (lobby == null) return;
 
-        // ★GetCurrentLobby() ではなく CurrentLobby を使う
         var lob = lobby.CurrentLobby;
 
         if (!inLobby && lob.m_SteamID != 0)
         {
+            // hostデータがあればそれを使う。無ければownerをホスト扱いにする
             var hostStr = SteamMatchmaking.GetLobbyData(lob, "host");
             if (ulong.TryParse(hostStr, out var hostU))
-            {
                 hostId = new CSteamID(hostU);
-                inLobby = true;
-                AddSystem("P2P ready. Host=" + hostId);
-            }
             else
-            {
-                // hostが未設定でもロビー参加はできるので、ownerで代替
                 hostId = SteamMatchmaking.GetLobbyOwner(lob);
-                inLobby = true;
-                AddSystem("P2P ready. Host(owner)=" + hostId);
-            }
+
+            inLobby = true;
+            AddSystem("チャット準備OK / Host=" + hostId);
         }
 
         if (inLobby && lob.m_SteamID == 0)
         {
             inLobby = false;
             hostId = default;
-            AddSystem("Left lobby. P2P stopped.");
+            AddSystem("ロビー退出：チャット停止");
         }
     }
 
-    // SteamLobbyUI から呼ぶ用（UIはここに集約する）
+    // ★SteamLobbyUIから呼ぶ（P2PTestが直接OnGUIしない）
     public void DrawChatUI(Rect rect)
     {
         GUILayout.BeginArea(rect, GUI.skin.box);
-        GUILayout.Label("Chat (P2P)");
+        GUILayout.Label("Room Chat (P2P)");
 
         if (!inLobby || lobby == null || !lobby.IsInLobby)
         {
-            GUILayout.Label("ロビー未参加");
+            GUILayout.Label("ロビー未参加（参加するとチャットできます）");
             GUILayout.EndArea();
             return;
         }
@@ -82,7 +78,6 @@ public class P2PTest : MonoBehaviour
 
         GUILayout.BeginHorizontal();
         chatInput = GUILayout.TextField(chatInput, GUILayout.Height(28));
-
         if (GUILayout.Button("Send", GUILayout.Width(80), GUILayout.Height(28)))
         {
             var msg = chatInput;
@@ -95,9 +90,7 @@ public class P2PTest : MonoBehaviour
         if (!iAmHost)
         {
             if (GUILayout.Button("Ping Host", GUILayout.Width(120), GUILayout.Height(26)))
-            {
                 SendPingToHost();
-            }
         }
         else
         {
@@ -108,21 +101,9 @@ public class P2PTest : MonoBehaviour
         GUILayout.EndArea();
     }
 
-    private void SendPingToHost()
-    {
-        if (currentTarget.m_SteamID == 0)
-        {
-            AddSystem("[P2P] No target selected");
-            return;
-        }
-        SendTo(hostId, "PING from " + SteamFriends.GetPersonaName());
-    }
-
-    public void SetTarget(CSteamID id)
-    {
-        currentTarget = id;
-        AddSystem("[P2P] Target set: " + id);
-    }
+    // =========================
+    // Chat Send
+    // =========================
     public void SendChatToLobby(string text)
     {
         if (string.IsNullOrWhiteSpace(text)) return;
@@ -133,21 +114,55 @@ public class P2PTest : MonoBehaviour
         }
 
         var me = SteamUser.GetSteamID();
-        var name = SteamFriends.GetPersonaName();
+        var name = SteamFriends.GetPersonaName(me);
 
-        // 自分のログ表示
+        // 自分の画面にも表示
         chatLog.Add($"{name}: {text}");
         TrimLog();
 
-        // ロビー全員へ送信（自分以外）
+        // ロビーメンバー全員へ（自分以外）
         var members = lobby.GetLobbyMembers();
         foreach (var m in members)
         {
             if (m == me) continue;
+
+            // フォーマット：CHAT|表示名|本文
             SendTo(m, $"CHAT|{name}|{text}");
         }
     }
 
+    // =========================
+    // Ping (optional)
+    // =========================
+    private void SendPingToHost()
+    {
+        if (!inLobby || hostId.m_SteamID == 0)
+        {
+            AddSystem("Hostが不明なのでPingできません");
+            return;
+        }
+        SendTo(hostId, "PING from " + SteamFriends.GetPersonaName());
+    }
+
+    // 旧FriendSelectUI互換
+    public void SetTarget(CSteamID id)
+    {
+        currentTarget = id;
+        AddSystem("[P2P] Target set: " + id);
+    }
+    public void SendPing()
+    {
+        if (currentTarget.m_SteamID == 0)
+        {
+            AddSystem("[P2P] No target selected");
+            return;
+        }
+        SendTo(currentTarget, "PING from " + SteamFriends.GetPersonaName());
+    }
+
+    // =========================
+    // Low-level Send/Recv
+    // =========================
     private void SendTo(CSteamID to, string text)
     {
         var identity = new SteamNetworkingIdentity();
@@ -168,7 +183,7 @@ public class P2PTest : MonoBehaviour
             );
 
             if (result != EResult.k_EResultOK)
-                Debug.LogWarning($"[P2P] SendMessageToUser result={result} to={to} text={text}");
+                Debug.LogWarning($"[P2P] Send failed result={result} to={to} text={text}");
         }
         finally
         {
@@ -196,6 +211,7 @@ public class P2PTest : MonoBehaviour
 
                 if (text.StartsWith("CHAT|"))
                 {
+                    // CHAT|name|body
                     var parts = text.Split(new[] { '|' }, 3);
                     if (parts.Length == 3)
                     {
@@ -210,6 +226,7 @@ public class P2PTest : MonoBehaviour
                 }
                 else
                 {
+                    // Pingなど
                     chatLog.Add($"[RECV] from={from} text={text}");
                     TrimLog();
                 }

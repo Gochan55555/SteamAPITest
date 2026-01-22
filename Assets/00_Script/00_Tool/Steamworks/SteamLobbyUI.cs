@@ -204,13 +204,10 @@ public class SteamLobbyUI : MonoBehaviour
 
     private void DrawRight(Rect rect)
     {
-        if (p2p == null)
-            return;
+        if (p2p == null) return;
 
         if (lobby != null && lobby.IsInLobby)
-        {
             p2p.DrawChatUI(rect);
-        }
         else
         {
             GUILayout.BeginArea(rect, GUI.skin.box);
