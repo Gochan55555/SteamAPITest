@@ -3,7 +3,8 @@ using Steamworks;
 
 public class SteamBootstrap : MonoBehaviour
 {
-    private bool steamReady = false;
+    public static bool IsReady { get; private set; } = false;   // ★追加
+
     private bool showSteamRequiredWindow = false;
     private string errorMessage = "Steamが起動していません。\nSteamクライアントからゲームを起動してください。";
 
@@ -11,6 +12,7 @@ public class SteamBootstrap : MonoBehaviour
     {
         TryInitSteam();
     }
+
     void TryInitSteam()
     {
         try
@@ -19,10 +21,11 @@ public class SteamBootstrap : MonoBehaviour
             {
                 Debug.LogError("SteamAPI.Init() failed. Steamが起動していない可能性あり。");
                 showSteamRequiredWindow = true;
+                IsReady = false; // ★追加
                 return;
             }
 
-            steamReady = true;
+            IsReady = true;      // ★追加
             showSteamRequiredWindow = false;
 
             Debug.Log("Steam 初期化成功！");
@@ -34,31 +37,30 @@ public class SteamBootstrap : MonoBehaviour
             Debug.LogError("steam_api64.dll が見つかりません: " + e);
             errorMessage = "SteamのDLLが見つかりません。\nインストールまたは配置を確認してください。";
             showSteamRequiredWindow = true;
+            IsReady = false; // ★追加
         }
     }
 
     void Update()
     {
-        if (steamReady)
+        if (IsReady)
         {
-            // これを呼ばないと、Lobbyや招待、通信イベントが来ない
             SteamAPI.RunCallbacks();
         }
     }
 
     void OnApplicationQuit()
     {
-        if (steamReady)
+        if (IsReady)
         {
             SteamAPI.Shutdown();
+            IsReady = false; // ★追加
         }
     }
 
-    // 中央にウィンドウを表示
     void OnGUI()
     {
-        if (!showSteamRequiredWindow)
-            return;
+        if (!showSteamRequiredWindow) return;
 
         float width = 400;
         float height = 180;
@@ -85,7 +87,6 @@ public class SteamBootstrap : MonoBehaviour
             Application.Quit();
         }
 
-        // ウィンドウをドラッグできるようにする（任意）
         GUI.DragWindow();
     }
 }

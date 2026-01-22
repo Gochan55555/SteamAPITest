@@ -5,38 +5,54 @@ public class Selector : MonoBehaviour
 {
     [SerializeField] GameObject loby;
     [SerializeField] GameObject guest;
+
+    [SerializeField] private bool allowKeyboardShortcut = true;
+
     string debugDraw = "";
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
 
-    }
-
-    // Update is called once per frame
     void Update()
     {
+        if (!allowKeyboardShortcut) return;
         if (Keyboard.current == null) return;
 
-        if (Keyboard.current.numpad1Key.wasPressedThisFrame)
-        {
-            loby.SetActive(true);
-            guest.SetActive(false);
-            debugDraw = "Loby Mode";
-        }
-        else if (Keyboard.current.numpad2Key.wasPressedThisFrame)
-        {
-            loby.SetActive(false);
-            guest.SetActive(true);
-            debugDraw = "Guest Mode";
-        }
+        if (Keyboard.current.numpad1Key.wasPressedThisFrame) SetLobbyMode();
+        else if (Keyboard.current.numpad2Key.wasPressedThisFrame) SetGuestMode();
     }
+
     void OnGUI()
     {
-        Color old = GUI.color;
+        const float w = 220f;
+        const float h = 130f;
+        const float margin = 10f;
 
-        GUI.color = Color.red;  // ここで色指定
-        GUI.Label(new Rect(20, 20, 300, 30), debugDraw);
+        // 右上に配置
+        var rect = new Rect(Screen.width - w - margin, margin, w, h);
 
-        GUI.color = old;
+        GUILayout.BeginArea(rect, GUI.skin.box);
+        GUILayout.Label("Mode Select");
+
+        if (GUILayout.Button("Lobby Mode", GUILayout.Height(30)))
+            SetLobbyMode();
+
+        if (GUILayout.Button("Guest Mode", GUILayout.Height(30)))
+            SetGuestMode();
+
+        GUILayout.Label(debugDraw);
+        GUILayout.EndArea();
+    }
+
+    private void SetLobbyMode()
+    {
+        if (loby != null) loby.SetActive(true);
+        if (guest != null) guest.SetActive(false);
+        debugDraw = "Lobby Mode";
+    }
+
+    private void SetGuestMode()
+    {
+        Debug.Log("[Selector] SetGuestMode()");
+        if (loby != null) loby.SetActive(false);
+        if (guest != null) guest.SetActive(true);
+        debugDraw = "Guest Mode";
     }
 }

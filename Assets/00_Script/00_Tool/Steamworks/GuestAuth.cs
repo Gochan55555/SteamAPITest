@@ -1,48 +1,45 @@
-using System;
-using UnityEngine; 
+using UnityEngine;
+using Steamworks;
 
-public static class GuestAuth
+namespace Tool.Steamworks
 {
-    private const string KEY_GUEST_ID = "guest_id";
-    private const string KEY_GUEST_NAME = "guest_name";
-
-    public static string GetOrCreateGuestId()
+    public sealed class SteamBootstrap : MonoBehaviour
     {
-        var id = PlayerPrefs.GetString(KEY_GUEST_ID, "");
-        if (string.IsNullOrEmpty(id))
+        public static bool IsReady { get; private set; }
+
+        void Awake()
         {
-            id = Guid.NewGuid().ToString("N"); // 32ï∂éö
-            PlayerPrefs.SetString(KEY_GUEST_ID, id);
-            PlayerPrefs.Save();
-        }
-        return id; 
-    } 
+            DontDestroyOnLoad(gameObject);
 
-    public static string GetOrCreateGuestName()
-    {
-        var name = PlayerPrefs.GetString(KEY_GUEST_NAME, "");
-        if (string.IsNullOrEmpty(name))
+            try
+            {
+                // Steamworks.NETÇÃêÑèßÅFSteamÇ™ãNìÆÇµÇƒÇÈÅïAppIdÇ™ê≥ÇµÇ¢ëOíÒ
+                IsReady = SteamAPI.Init();
+                if (!IsReady)
+                {
+                    Debug.LogError("[SteamBootstrap] SteamAPI.Init failed.");
+                }
+            }
+            catch (System.DllNotFoundException e)
+            {
+                Debug.LogError("[SteamBootstrap] Steamworks dll not found: " + e);
+                IsReady = false;
+            }
+        }
+
+        void Update()
         {
-            // éGÇ…î‘çÜÇÇ¬ÇØÇÈ
-            var id = GetOrCreateGuestId();
-            name = "Guest" + id.Substring(0, 4);
-            PlayerPrefs.SetString(KEY_GUEST_NAME, name);
-            PlayerPrefs.Save();
+            if (IsReady)
+                SteamAPI.RunCallbacks();
         }
-        return name;
-    }
 
-    public static void SetGuestName(string name)
-    {
-        if (string.IsNullOrWhiteSpace(name)) return;
-        PlayerPrefs.SetString(KEY_GUEST_NAME, name.Trim());
-        PlayerPrefs.Save();
-    }
-
-    public static void ResetGuest()
-    {
-        PlayerPrefs.DeleteKey(KEY_GUEST_ID);
-        PlayerPrefs.DeleteKey(KEY_GUEST_NAME);
-        PlayerPrefs.Save();
+        void OnDestroy()
+        {
+            if (IsReady)
+            {
+                SteamAPI.Shutdown();
+                IsReady = false;
+            }
+        }
     }
 }
