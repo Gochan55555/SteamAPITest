@@ -12,6 +12,7 @@ public class P2PTest : MonoBehaviour
     private bool inLobby;
 
     private const int Channel = 0;
+    private CSteamID currentTarget;
 
     // Steamworksの送信フラグ（steamnetworkingtypes.h）
     // Reliable = 8 :contentReference[oaicite:3]{index=3}
@@ -49,7 +50,7 @@ public class P2PTest : MonoBehaviour
         {
             if (GUILayout.Button("ホストへPING送信", GUILayout.Height(35)))
             {
-                SendTo(hostId, "PING from " + SteamFriends.GetPersonaName());
+                SendPing();
             }
         }
         else
@@ -58,6 +59,21 @@ public class P2PTest : MonoBehaviour
         }
 
         GUILayout.EndArea();
+    }
+    public void SendPing()
+    {
+        if (currentTarget.m_SteamID == 0)
+        {
+            Debug.LogError("[P2P] No target selected");
+            return;
+        }
+
+        SendTo(currentTarget, "PING from " + SteamFriends.GetPersonaName());
+    }
+    public void SetTarget(CSteamID id)
+    {
+        currentTarget = id;
+        Debug.Log("[P2P] Target set: " + id);
     }
 
     private void SendTo(CSteamID to, string text)
