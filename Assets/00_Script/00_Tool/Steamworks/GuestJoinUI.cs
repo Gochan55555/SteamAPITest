@@ -10,7 +10,7 @@ public class GuestJoinUI : MonoBehaviour
     void OnGUI()
     {
         // guest画面にだけ表示したいなら、guestオブジェクト自体をActive/Inactiveしてる前提でOK
-        GUILayout.BeginArea(new Rect(10, 260, 460, 180), GUI.skin.box);
+        GUILayout.BeginArea(new Rect(10, 10, 460, 180), GUI.skin.box);
         GUILayout.Label("Guest Join");
 
         GUILayout.Label("Lobby ID を入力して参加（ホスト側で表示/コピーしたID）");
