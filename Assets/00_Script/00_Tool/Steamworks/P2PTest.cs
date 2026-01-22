@@ -114,7 +114,7 @@ public class P2PTest : MonoBehaviour
         }
 
         var me = SteamUser.GetSteamID();
-        var name = SteamFriends.GetPersonaName(me);
+        var name = SteamFriends.GetPersonaName();
 
         // Ž©•ª‚Ì‰æ–Ê‚É‚à•\Ž¦
         chatLog.Add($"{name}: {text}");
