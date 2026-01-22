@@ -18,21 +18,21 @@ public class LobbyTest : MonoBehaviour
     public event Action<CSteamID> OnLobbyEnteredEvent;
     public event Action OnLobbyLeftEvent;
 
-    // ★Joinの結果をUIへ返す
+    // Joinの結果をUIへ返す
     public event Action<bool, string, CSteamID> OnJoinResultEvent;
 
-    // =========================
-    // ★追加：参加状態をUIが参照できるように保持
-    // =========================
+    // 参加状態（UIが参照できる）
     public bool IsJoining { get; private set; }
     public CSteamID TargetJoinLobby { get; private set; }
     public string LastJoinMessage { get; private set; } = "";
-    public bool? LastJoinSuccess { get; private set; } = null;   // null = 未確定/未実行
+    public bool? LastJoinSuccess { get; private set; } = null;   // null=未実行/未確定
 
     [Header("Join Timeout")]
     [SerializeField] private float joinTimeoutSec = 10f;
-
     private float joinStartTime;
+
+    // ロビー内ニックネーム（Steamプロフィール名とは別）
+    public string LocalDisplayName { get; private set; } = "Player";
 
     void Awake()
     {
@@ -44,7 +44,7 @@ public class LobbyTest : MonoBehaviour
 
     void Update()
     {
-        // ★追加：LobbyEnter_t が返ってこない時の保険（タイムアウト）
+        // LobbyEnter_tが返ってこない時の保険（タイムアウト）
         if (IsJoining && (Time.unscaledTime - joinStartTime) > joinTimeoutSec)
         {
             IsJoining = false;
@@ -52,15 +52,13 @@ public class LobbyTest : MonoBehaviour
             LastJoinMessage = $"参加失敗: Timeout({joinTimeoutSec:0}s)";
 
             Debug.LogWarning("[LobbyTest] Join TIMEOUT. target=" + TargetJoinLobby);
-
             OnJoinResultEvent?.Invoke(false, LastJoinMessage, TargetJoinLobby);
         }
     }
-    // ★仮UI（確認用）: SteamLobbyUIを置くまでの繋ぎ
     void OnGUI()
     {
-        GUILayout.BeginArea(new Rect(10, 200, 420, 220), GUI.skin.box);
-        GUILayout.Label("Lobby Test (Temp UI)");
+        GUILayout.BeginArea(new Rect(200, 200, 220, 200), GUI.skin.box);
+        GUILayout.Label("Temp Lobby UI");
 
         if (!SteamBootstrap.IsReady)
         {
@@ -71,31 +69,13 @@ public class LobbyTest : MonoBehaviour
 
         GUILayout.Label("InLobby: " + IsInLobby);
         GUILayout.Label("LobbyID: " + (IsInLobby ? CurrentLobby.m_SteamID.ToString() : "-"));
-        if (IsInLobby)
+
+        if (!IsInLobby)
         {
-            if (GUILayout.Button("Copy Lobby ID", GUILayout.Height(28)))
-            {
-                GUIUtility.systemCopyBuffer = CurrentLobby.m_SteamID.ToString();
-                LastJoinMessage = "Lobby ID をコピーしました";
-            }
-
-            if (GUILayout.Button("Leave Lobby", GUILayout.Height(28)))
-                LeaveLobby();
+            if (GUILayout.Button("Create FriendsOnly Lobby", GUILayout.Height(32)))
+                CreateFriendsOnlyLobby(4);
         }
-        GUILayout.Label("Join: " + (IsJoining ? "参加中..." : "待機"));
-        GUILayout.Label("Last: " + LastJoinMessage);
-
-        GUI.enabled = !IsInLobby && !IsJoining;
-        if (GUILayout.Button("Create FriendsOnly Lobby", GUILayout.Height(32)))
-            CreateFriendsOnlyLobby(4);
-        GUI.enabled = true;
-
-        GUILayout.BeginHorizontal();
-        GUILayout.Label("Manual Join ID:");
-        // 手入力したいなら string をフィールドで持つ必要あるから、ここではコピー運用でOK
-        GUILayout.EndHorizontal();
-
-        if (IsInLobby)
+        else
         {
             if (GUILayout.Button("Leave Lobby", GUILayout.Height(28)))
                 LeaveLobby();
@@ -103,6 +83,55 @@ public class LobbyTest : MonoBehaviour
 
         GUILayout.EndArea();
     }
+    // ====== Nickname ======
+
+    /// <summary>
+    /// ロビー内の表示名を設定（Join/Create前に呼ぶ）
+    /// </summary>
+    public void SetLocalDisplayName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            name = "Player";
+
+        LocalDisplayName = name.Trim();
+
+        // 参加中なら即反映
+        if (IsInLobby)
+            ApplyLocalNameToLobby();
+    }
+
+    /// <summary>
+    /// 自分の LobbyMemberData に nick を入れる（ロビーごとの名前）
+    /// </summary>
+    private void ApplyLocalNameToLobby()
+    {
+        if (!IsInLobby) return;
+
+        // 自分のメンバーデータへ保存
+        SteamMatchmaking.SetLobbyMemberData(currentLobby, "nick", LocalDisplayName);
+    }
+
+    /// <summary>
+    /// ロビー内の任意メンバーのnick（無ければSteam名 or ID）
+    /// </summary>
+    public string GetMemberDisplayName(CSteamID member)
+    {
+        if (IsInLobby)
+        {
+            string nick = SteamMatchmaking.GetLobbyMemberData(currentLobby, member, "nick");
+            if (!string.IsNullOrEmpty(nick))
+                return nick;
+        }
+
+        // フレンドならSteam名を取れる（非フレンドは空になることがある）
+        string steamName = SteamFriends.GetFriendPersonaName(member);
+        if (!string.IsNullOrEmpty(steamName))
+            return steamName;
+
+        return member.m_SteamID.ToString();
+    }
+
+    // ====== Lobby ops ======
 
     public void CreateFriendsOnlyLobby(int maxMembers = 4)
     {
@@ -122,7 +151,7 @@ public class LobbyTest : MonoBehaviour
             return;
         }
 
-        // ★追加：参加中状態へ
+        // 参加中状態へ
         IsJoining = true;
         joinStartTime = Time.unscaledTime;
         TargetJoinLobby = new CSteamID(lobbyId);
@@ -135,7 +164,6 @@ public class LobbyTest : MonoBehaviour
 
     public void LeaveLobby()
     {
-        // ★追加：Join中ならJoin中も解除
         IsJoining = false;
 
         if (!IsInLobby) return;
@@ -159,6 +187,8 @@ public class LobbyTest : MonoBehaviour
         return list;
     }
 
+    // ====== Callbacks ======
+
     private void OnLobbyCreated(LobbyCreated_t data)
     {
         if (data.m_eResult != EResult.k_EResultOK)
@@ -174,11 +204,14 @@ public class LobbyTest : MonoBehaviour
         SteamMatchmaking.SetLobbyData(currentLobby, "name", SteamFriends.GetPersonaName());
         SteamMatchmaking.SetLobbyData(currentLobby, "ver", Application.version);
 
-        // Host は作成＝参加済み扱いなので join状態はクリア
+        // Host は作成＝参加済み扱い
         IsJoining = false;
         TargetJoinLobby = default;
         LastJoinSuccess = true;
         LastJoinMessage = "ロビー作成成功";
+
+        // ★作成後すぐnick反映
+        ApplyLocalNameToLobby();
 
         OnLobbyEnteredEvent?.Invoke(currentLobby);
     }
@@ -186,7 +219,7 @@ public class LobbyTest : MonoBehaviour
     private void OnJoinRequested(GameLobbyJoinRequested_t data)
     {
         Debug.Log("[LobbyTest] JoinRequested. Lobby: " + data.m_steamIDLobby);
-        JoinLobbyById(data.m_steamIDLobby.m_SteamID); // ★Join処理を共通化
+        JoinLobbyById(data.m_steamIDLobby.m_SteamID);
     }
 
     private void OnLobbyEntered(LobbyEnter_t data)
@@ -194,7 +227,7 @@ public class LobbyTest : MonoBehaviour
         var lobbyId = new CSteamID(data.m_ulSteamIDLobby);
         var resp = (EChatRoomEnterResponse)data.m_EChatRoomEnterResponse;
 
-        // ★LobbyEnterが来た時点で Join待ちは終了（成功/失敗に関わらず）
+        // LobbyEnterが来たらJoin待ちは終了
         IsJoining = false;
         TargetJoinLobby = default;
 
@@ -205,6 +238,9 @@ public class LobbyTest : MonoBehaviour
 
             LastJoinSuccess = true;
             LastJoinMessage = "参加成功";
+
+            // ★参加成功したらnick反映
+            ApplyLocalNameToLobby();
 
             OnJoinResultEvent?.Invoke(true, LastJoinMessage, currentLobby);
             OnLobbyEnteredEvent?.Invoke(currentLobby);

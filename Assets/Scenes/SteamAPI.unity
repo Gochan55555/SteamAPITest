@@ -267,6 +267,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ebbddbcc080d10549b4c38f8103e334c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LobbyBrowser
+  showOnGUI: 0
+  uiRect:
+    serializedVersion: 2
+    x: 10
+    y: 200
+    width: 420
+    height: 260
+  lobby: {fileID: 0}
 --- !u!1 &1415171044
 GameObject:
   m_ObjectHideFlags: 0

@@ -20,13 +20,14 @@ public class SteamLobbyUI : MonoBehaviour
     private const float JoinTimeoutSec = 10f;
 
     private Vector2 lobbyListScroll;
+    private string nameInput = "";
 
     void OnEnable()
     {
+        nameInput = PlayerPrefs.GetString("LOBBY_NICK", "Player");
+
         if (lobby != null)
-        {
             lobby.OnJoinResultEvent += OnJoinResult;
-        }
     }
 
     void OnDisable()
@@ -49,8 +50,8 @@ public class SteamLobbyUI : MonoBehaviour
 
     void OnGUI()
     {
-        var left = new Rect(10, 10, 420, 520);
-        var right = new Rect(440, 10, 420, 520);
+        var left = new Rect(10, 10, 420, 220);
+        var right = new Rect(440, 10, 420, 220);
 
         DrawLeft(left);
         DrawRight(right);

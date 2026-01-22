@@ -60,7 +60,7 @@ public class P2PTest : MonoBehaviour
     public void DrawChatUI(Rect rect)
     {
         GUILayout.BeginArea(rect, GUI.skin.box);
-        GUILayout.Label("Room Chat (P2P)");
+        GUILayout.Label("Room Chat");
 
         if (!inLobby || lobby == null || !lobby.IsInLobby)
         {
@@ -72,7 +72,7 @@ public class P2PTest : MonoBehaviour
         bool iAmHost = (SteamUser.GetSteamID() == hostId);
         GUILayout.Label(iAmHost ? "あなたはホスト" : "あなたは参加者");
 
-        chatScroll = GUILayout.BeginScrollView(chatScroll, GUILayout.Height(240));
+        chatScroll = GUILayout.BeginScrollView(chatScroll, GUILayout.Height(260));
         foreach (var line in chatLog) GUILayout.Label(line);
         GUILayout.EndScrollView();
 
@@ -83,18 +83,6 @@ public class P2PTest : MonoBehaviour
             var msg = chatInput;
             chatInput = "";
             SendChatToLobby(msg);
-        }
-        GUILayout.EndHorizontal();
-
-        GUILayout.BeginHorizontal();
-        if (!iAmHost)
-        {
-            if (GUILayout.Button("Ping Host", GUILayout.Width(120), GUILayout.Height(26)))
-                SendPingToHost();
-        }
-        else
-        {
-            GUILayout.Label("Host: 受信待ち");
         }
         GUILayout.EndHorizontal();
 
@@ -114,7 +102,7 @@ public class P2PTest : MonoBehaviour
         }
 
         var me = SteamUser.GetSteamID();
-        var name = SteamFriends.GetPersonaName();
+        var name = lobby.LocalDisplayName; // ★ロビーnick
 
         // 自分の画面にも表示
         chatLog.Add($"{name}: {text}");
@@ -126,8 +114,8 @@ public class P2PTest : MonoBehaviour
         {
             if (m == me) continue;
 
-            // フォーマット：CHAT|表示名|本文
-            SendTo(m, $"CHAT|{name}|{text}");
+            // CHAT|本文（送信者名は受信側でfromから引く。改ざんしにくい）
+            SendTo(m, $"CHAT|{text}");
         }
     }
 
@@ -211,22 +199,17 @@ public class P2PTest : MonoBehaviour
 
                 if (text.StartsWith("CHAT|"))
                 {
-                    // CHAT|name|body
-                    var parts = text.Split(new[] { '|' }, 3);
-                    if (parts.Length == 3)
-                    {
-                        chatLog.Add($"{parts[1]}: {parts[2]}");
-                        TrimLog();
-                    }
-                    else
-                    {
-                        chatLog.Add($"[CHAT?] from={from} text={text}");
-                        TrimLog();
-                    }
+                    // CHAT|body
+                    string body = text.Length > 5 ? text.Substring(5) : "";
+
+                    // ★送信者名は from の LobbyMemberData(nick) を優先
+                    string fromName = (lobby != null) ? lobby.GetMemberDisplayName(from) : from.m_SteamID.ToString();
+
+                    chatLog.Add($"{fromName}: {body}");
+                    TrimLog();
                 }
                 else
                 {
-                    // Pingなど
                     chatLog.Add($"[RECV] from={from} text={text}");
                     TrimLog();
                 }
