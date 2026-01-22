@@ -117,15 +117,17 @@ public class SteamLobbyUI : MonoBehaviour
             if (GUILayout.Button("Copy Lobby ID", GUILayout.Height(28)))
             {
                 GUIUtility.systemCopyBuffer = lobby.CurrentLobby.m_SteamID.ToString();
-                status = "コピーしました";
+                status = "Lobby ID をコピーしました";
             }
+
             if (GUILayout.Button("Leave Lobby", GUILayout.Height(28)))
             {
                 lobby.LeaveLobby();
             }
             GUILayout.EndHorizontal();
 
-            GUILayout.Label("Members: " + SteamMatchmaking.GetNumLobbyMembers(lobby.CurrentLobby));
+            GUILayout.Label("Members: " +
+                SteamMatchmaking.GetNumLobbyMembers(lobby.CurrentLobby));
         }
     }
 

@@ -219,6 +219,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1301712852}
   - component: {fileID: 1301712851}
+  - component: {fileID: 1301712853}
   m_Layer: 0
   m_Name: LobbySystem
   m_TagString: Untagged
@@ -238,6 +239,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27e0a35f74fb19647a45b1d5b8603004, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LobbyTest
+  joinTimeoutSec: 10
 --- !u!4 &1301712852
 Transform:
   m_ObjectHideFlags: 0
@@ -253,6 +255,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1301712853
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1301712850}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ebbddbcc080d10549b4c38f8103e334c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LobbyBrowser
 --- !u!1 &1415171044
 GameObject:
   m_ObjectHideFlags: 0

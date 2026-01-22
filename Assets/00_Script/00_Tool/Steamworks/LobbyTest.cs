@@ -71,6 +71,17 @@ public class LobbyTest : MonoBehaviour
 
         GUILayout.Label("InLobby: " + IsInLobby);
         GUILayout.Label("LobbyID: " + (IsInLobby ? CurrentLobby.m_SteamID.ToString() : "-"));
+        if (IsInLobby)
+        {
+            if (GUILayout.Button("Copy Lobby ID", GUILayout.Height(28)))
+            {
+                GUIUtility.systemCopyBuffer = CurrentLobby.m_SteamID.ToString();
+                LastJoinMessage = "Lobby ID をコピーしました";
+            }
+
+            if (GUILayout.Button("Leave Lobby", GUILayout.Height(28)))
+                LeaveLobby();
+        }
         GUILayout.Label("Join: " + (IsJoining ? "参加中..." : "待機"));
         GUILayout.Label("Last: " + LastJoinMessage);
 
