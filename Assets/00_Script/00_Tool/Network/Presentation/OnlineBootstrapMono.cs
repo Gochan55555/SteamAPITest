@@ -1,6 +1,5 @@
-using GL.Network.Application;
+﻿using GL.Network.Application;
 using GL.Network.Application.Ports;
-using GL.Network.Domain;
 using UnityEngine;
 
 namespace GL.Network.Presentation
@@ -12,9 +11,9 @@ namespace GL.Network.Presentation
 
         void Awake()
         {
-            var (pump, lobby, transport) = OnlineFactory.Create();
+            var (pump, lobby, transport, chat) = OnlineFactory.Create();
 
-            var facade = new OnlineFacade(lobby, transport);
+            var facade = new OnlineFacade(lobby, transport, chat);
             Runtime = new OnlineRuntime(pump, facade);
         }
 
@@ -31,25 +30,35 @@ namespace GL.Network.Presentation
 
     internal static class OnlineFactory
     {
-        public static (INetworkPump pump, ILobbyService lobby, ITransport transport) Create()
+        public static (INetworkPump pump, ILobbyService lobby, ITransport transport, IChatService chat) Create()
         {
 #if ONLINE_STEAM
             var pump = new GL.Network.Infrastructure.Steam.SteamClient();
-            var lobby = new GL.Network.Infrastructure.Steam.SteamLobbyService((GL.Network.Infrastructure.Steam.SteamClient)pump);
+            var lobby = new GL.Network.Infrastructure.Steam.SteamLobbyService(pump);
             var transport = new GL.Network.Infrastructure.Steam.SteamTransport();
-            return (pump, lobby, transport);
+
+            // ✅ チャット専用（新規追加したクラス）
+            var chat = new GL.Network.Infrastructure.Steam.SteamLobbyChatService(lobby);
+
+            return (pump, lobby, transport, chat);
 
 #elif ONLINE_AWS
             var pump = new Online.Infrastructure.Aws.AwsPump();
             var lobby = new Online.Infrastructure.Aws.AwsLobbyService();
             var transport = new Online.Infrastructure.Aws.AwsTransport();
-            return (pump, lobby, transport);
+
+            // AWSチャットがまだ無いなら、NullChatServiceでコンパイル通す
+            var chat = new GL.Network.Infrastructure.Null.NullChatService();
+
+            return (pump, lobby, transport, chat);
 
 #else
             var pump = new GL.Network.Infrastructure.Null.NullPump();
             var lobby = new GL.Network.Infrastructure.Null.NullLobbyService();
             var transport = new GL.Network.Infrastructure.Null.NullTransport();
-            return (pump, lobby, transport);
+            var chat = new GL.Network.Infrastructure.Null.NullChatService();
+
+            return (pump, lobby, transport, chat);
 #endif
         }
     }

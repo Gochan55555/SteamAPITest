@@ -1,4 +1,4 @@
-#if ONLINE_STEAM
+ï»¿#if ONLINE_STEAM
 using System;
 using System.Collections.Generic;
 using GL.Network.Application.Ports;
@@ -19,8 +19,6 @@ namespace GL.Network.Infrastructure.Steam
         private LobbyId _current;
         private string _localName = "Player";
 
-        private Callback<LobbyChatMsg_t> _cbChatMsg;
-        public event Action<PlayerId, string> OnLobbyChat;
         public SteamLobbyService(SteamClient client)
         {
             _client = client;
@@ -28,7 +26,6 @@ namespace GL.Network.Infrastructure.Steam
             _cbCreated = Callback<LobbyCreated_t>.Create(OnCreated);
             _cbEnter = Callback<LobbyEnter_t>.Create(OnEnteredInternal);
             _cbJoinReq = Callback<GameLobbyJoinRequested_t>.Create(OnJoinRequested);
-            _cbChatMsg = Callback<LobbyChatMsg_t>.Create(OnLobbyChatMsg);
         }
 
         public bool IsReady => _client != null && _client.IsReady;
@@ -68,22 +65,22 @@ namespace GL.Network.Infrastructure.Steam
         {
             if (!IsReady) { onError?.Invoke("Steam not ready"); return; }
 
-            // ƒTƒ“ƒvƒ‹F‘S¢ŠE + ƒtƒŒƒ“ƒh‚¾‚¯i•K—v‚È‚çğŒ‚Í UseCase ‚ÖŠñ‚¹‚éj
             SteamMatchmaking.AddRequestLobbyListDistanceFilter(ELobbyDistanceFilter.k_ELobbyDistanceFilterWorldwide);
 
             var handle = SteamMatchmaking.RequestLobbyList();
-
             var cr = CallResult<LobbyMatchList_t>.Create((data, ioFail) =>
             {
                 if (ioFail) { onError?.Invoke("RequestLobbyList IO fail"); return; }
 
                 var list = new List<LobbyInfo>();
                 int count = (int)data.m_nLobbiesMatching;
+
                 for (int i = 0; i < count; i++)
                 {
                     var lob = SteamMatchmaking.GetLobbyByIndex(i);
                     var owner = SteamMatchmaking.GetLobbyOwner(lob);
 
+                    // ãƒ•ãƒ¬ãƒ³ãƒ‰ã ã‘ã«çµã‚‹ï¼ˆå¿…è¦ãªã‚‰UseCaseã¸å¯„ã›ã‚‹ï¼‰
                     if (SteamFriends.GetFriendRelationship(owner) != EFriendRelationship.k_EFriendRelationshipFriend)
                         continue;
 
@@ -98,13 +95,6 @@ namespace GL.Network.Infrastructure.Steam
                 onResult?.Invoke(list);
             });
             cr.Set(handle);
-        }
-
-        public void SendLobbyChat(string text)
-        {
-            if (!IsReady || !_current.IsValid) return;
-            var bytes = System.Text.Encoding.UTF8.GetBytes(text);
-            SteamMatchmaking.SendLobbyChatMsg(new CSteamID(_current.Value), bytes, bytes.Length);
         }
 
         public string GetMemberDisplayName(PlayerId id)
@@ -133,10 +123,13 @@ namespace GL.Network.Infrastructure.Steam
 
             _current = new LobbyId(data.m_ulSteamIDLobby);
 
-            // ƒƒr[ƒf[ƒ^i—áj
+            // ãƒ­ãƒ“ãƒ¼ãƒ‡ãƒ¼ã‚¿ï¼ˆä¾‹ï¼‰
             var lob = new CSteamID(_current.Value);
             SteamMatchmaking.SetLobbyData(lob, "host", SteamUser.GetSteamID().ToString());
+
+            // âœ… UnityEngine.Application ã«æ˜ç¤ºï¼ˆnamespaceè¡çªå›é¿ï¼‰
             SteamMatchmaking.SetLobbyData(lob, "ver", UnityEngine.Application.version);
+
             ApplyLocalName();
             OnEntered?.Invoke(_current);
         }
@@ -162,31 +155,6 @@ namespace GL.Network.Infrastructure.Steam
             if (!IsReady || !_current.IsValid) return;
             SteamMatchmaking.SetLobbyMemberData(new CSteamID(_current.Value), "nick", _localName);
         }
-        private void OnLobbyChatMsg(LobbyChatMsg_t data)
-        {
-            if (!_current.IsValid) return;
-            if (data.m_ulSteamIDLobby != _current.Value) return;
-
-            CSteamID user;
-            EChatEntryType type;
-            byte[] buffer = new byte[4096];
-
-            int len = SteamMatchmaking.GetLobbyChatEntry(
-                new CSteamID(data.m_ulSteamIDLobby),
-                (int)data.m_iChatID,
-                out user,
-                buffer,
-                buffer.Length,
-                out type
-            );
-
-            if (len <= 0) return;
-            if (type != EChatEntryType.k_EChatEntryTypeChatMsg) return;
-
-            string text = System.Text.Encoding.UTF8.GetString(buffer, 0, len);
-            OnLobbyChat?.Invoke(new PlayerId(user.m_SteamID), text);
-        }
-
     }
 }
 #endif

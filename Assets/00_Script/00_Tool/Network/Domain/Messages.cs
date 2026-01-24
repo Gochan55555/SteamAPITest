@@ -36,4 +36,39 @@ namespace GL.Network.Domain
             Payload = payload;
         }
     }
+
+    public enum ChatLineState
+    { 
+        Pending, 
+        Confirmed, 
+        Failed 
+    }
+
+    public readonly struct ChatMessage
+    {
+        public readonly string MessageId;   // server id
+        public readonly string SenderId;    // user id
+        public readonly string SenderName;
+        public readonly long UnixMs;
+        public readonly string Text;
+
+        public ChatMessage(string messageId, string senderId, string senderName, long unixMs, string text)
+        {
+            MessageId = messageId;
+            SenderId = senderId;
+            SenderName = senderName;
+            UnixMs = unixMs;
+            Text = text;
+        }
+    }
+
+    public sealed class ChatLine
+    {
+        public string LocalTempId;      // client temp id
+        public string ServerMessageId;  // server id
+        public string SenderName;
+        public string Text;
+        public ChatLineState State;
+        public long UnixMs;
+    }
 }

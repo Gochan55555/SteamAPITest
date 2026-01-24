@@ -27,7 +27,6 @@ namespace GL.Network.Infrastructure.Null
             _current = new LobbyId(1);
             OnEntered?.Invoke(_current);
         }
-        public event Action<PlayerId, string> OnLobbyChat;
 
         public void Join(LobbyId lobbyId)
         {
@@ -45,8 +44,6 @@ namespace GL.Network.Infrastructure.Null
         {
             onResult?.Invoke(new List<LobbyInfo>());
         }
-
-        public void SendLobbyChat(string text) { }
 
         public string GetMemberDisplayName(PlayerId id) => _name;
     }

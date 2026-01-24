@@ -20,6 +20,9 @@ namespace GL.Network.Application.Ports
         }
     }
 
+    // =========================
+    // Match / Lobby (マッチング)
+    // =========================
     public interface ILobbyService
     {
         bool IsReady { get; }
@@ -28,7 +31,6 @@ namespace GL.Network.Application.Ports
 
         event Action<LobbyId> OnEntered;
         event Action OnLeft;
-        event System.Action<GL.Network.Domain.PlayerId, string> OnLobbyChat;
 
         void SetLocalDisplayName(string name);
 
@@ -38,28 +40,55 @@ namespace GL.Network.Application.Ports
 
         void RequestLobbies(Action<IReadOnlyList<LobbyInfo>> onResult, Action<string> onError);
 
-        // ロビーのテキストチャット（SteamのLobbyChat等の実装にできる）
-        void SendLobbyChat(string text);
-
         // 名前引き（実装側で “nick” を持つ/持たないは自由）
         string GetMemberDisplayName(PlayerId id);
     }
 
+    // =========================
+    // Chat (チャット)
+    // =========================
+    public interface IChatService
+    {
+        bool IsReady { get; }
+
+        /// <summary>
+        /// ルームに接続（Steam Lobby Chatなら概念上接続だけ）
+        /// </summary>
+        void Connect(string roomId);
+
+        void Disconnect();
+
+        void Send(string text);
+
+        /// <summary>
+        /// (from, text)
+        /// </summary>
+        event Action<PlayerId, string> OnMessage;
+    }
+
+    // =========================
+    // Game Transport (ゲーム通信)
+    // =========================
     public interface ITransport
     {
         void Send(PlayerId to, NetEnvelope env, SendReliability reliability);
 
-        // Spanではなく配列で受ける
-        int Receive(NetReceived[] buffer);
+        // 配列で受信（unsafe/Span回避）
+        int Receive(ITransport.NetReceived[] buffer);
 
         public readonly struct NetReceived
         {
             public readonly PlayerId From;
             public readonly NetEnvelope Envelope;
-            public NetReceived(PlayerId from, NetEnvelope env) { From = from; Envelope = env; }
+
+            public NetReceived(PlayerId from, NetEnvelope env)
+            {
+                From = from;
+                Envelope = env;
+            }
         }
-    }    // SteamAPI.RunCallbacks / AWSポーリング / WebSocket pump 等を隠す
-    
+    }
+
     public interface INetworkPump
     {
         bool IsReady { get; }
