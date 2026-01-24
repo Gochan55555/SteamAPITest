@@ -30,7 +30,7 @@ namespace GL.Network.Presentation
             GUILayout.Label($"InLobby: {f.Lobby.IsInLobby}", GUILayout.Width(140));
 
             ulong lobbyId = f.Lobby.CurrentLobby.Value;
-            GUILayout.Label($"LobbyId: {lobbyId}", GUILayout.Width(200));
+            GUILayout.Label($"LobbyId: {lobbyId}", GUILayout.Width(220));
 
             GUI.enabled = lobbyId != 0;
             if (GUILayout.Button("Copy", GUILayout.Width(60)))

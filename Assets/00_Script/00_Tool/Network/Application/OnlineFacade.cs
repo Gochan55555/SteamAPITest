@@ -26,6 +26,11 @@ namespace GL.Network.Application
 
             _lobby.OnEntered += _ => AddSys("Lobby Entered");
             _lobby.OnLeft += () => AddSys("Lobby Left");
+            _lobby.OnLobbyChat += (from, text) =>
+            {
+                var name = _lobby.GetMemberDisplayName(from);
+                AddLine($"{name}: {text}");
+            };
         }
 
         public ILobbyService Lobby => _lobby;
@@ -47,7 +52,10 @@ namespace GL.Network.Application
             }
         }
 
-        public void SendLobbyChat(string text) => _lobby.SendLobbyChat(text);
+        public void SendLobbyChat(string text)
+        {
+            _lobby.SendLobbyChat(text);
+        }
 
         public void SendPacket(PlayerId to, MessageKind kind, byte[] payload, SendReliability reliability)
         {

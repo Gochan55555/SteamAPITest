@@ -100,7 +100,7 @@ public class P2PTest : MonoBehaviour
             SendChatToLobby(msg);
         }
         GUILayout.EndHorizontal();
-    }
+    } 
 
     // =========================
     // Chat Send
@@ -114,7 +114,7 @@ public class P2PTest : MonoBehaviour
             return;
         }
 
-        // ★ロビーの公式チャットに送る（P2P不要で確実に届く）
+        // ロビーの公式チャットに送る（P2P不要で確実に届く）
         byte[] bytes = Encoding.UTF8.GetBytes(text);
         bool ok = SteamMatchmaking.SendLobbyChatMsg(lobby.CurrentLobby, bytes, bytes.Length);
 

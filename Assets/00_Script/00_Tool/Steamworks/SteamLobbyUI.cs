@@ -234,7 +234,7 @@ public class SteamLobbyUI : MonoBehaviour
             return;
         }
 
-        // ★ここでチャットUI描画（中でBeginAreaしない版）
+        // ここでチャットUI描画（中でBeginAreaしない版）
         p2p.DrawChatUI(rect);
 
         GUILayout.EndArea();

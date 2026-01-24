@@ -28,6 +28,7 @@ namespace GL.Network.Application.Ports
 
         event Action<LobbyId> OnEntered;
         event Action OnLeft;
+        event System.Action<GL.Network.Domain.PlayerId, string> OnLobbyChat;
 
         void SetLocalDisplayName(string name);
 
