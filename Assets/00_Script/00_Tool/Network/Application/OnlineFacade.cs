@@ -1,5 +1,6 @@
 ﻿// Assets/00_Script/00_Tool/Network/Application/OnlineFacade.cs
 
+using System;
 using System.Collections.Generic;
 using System.Text;
 using GL.Network.Application.Ports;
@@ -18,10 +19,11 @@ namespace GL.Network.Application
         private ushort _seq;
         private uint _tick;
 
-        // ✅ 追加：相手ごとに最後のseqを記録（重複排除）
-        private readonly Dictionary<ulong, ushort> _lastSeqByFrom = new();
-
         public readonly List<string> ChatLog = new();
+
+        // 追加：ゲーム層へ “Raw受信” を流す
+        // (from, envelope)
+        public event Action<PlayerId, NetEnvelope> OnPacket;
 
         public OnlineFacade(ILobbyService lobby, ITransport transport, IChatService chat)
         {
@@ -53,32 +55,16 @@ namespace GL.Network.Application
             {
                 var r = _recvBuf[i];
 
-                // ✅ ロビー外の通信は捨てる（安全側）
-                if (_lobby == null || !_lobby.IsInLobby)
-                    continue;
+                // まずゲーム層へ生で流す（ここが今回の追加）
+                OnPacket?.Invoke(r.From, r.Envelope);
 
-                // ✅ ロビーメンバー以外は捨てる
-                if (!_lobby.IsMember(r.From))
-                    continue;
-
-                // ✅ seq重複排除（同一seq＝重複として捨てる）
-                if (_lastSeqByFrom.TryGetValue(r.From.Value, out var last))
-                {
-                    ushort diff = (ushort)(r.Envelope.Seq - last);
-                    if (diff == 0)
-                        continue;
-                }
-                _lastSeqByFrom[r.From.Value] = r.Envelope.Seq;
-
-                // 例：P2Pで Chat を流したいならここで処理
+                // 既存：Chatの処理（デバッグ用途として残す）
                 if (r.Envelope.Kind == MessageKind.Chat)
                 {
                     string text = Encoding.UTF8.GetString(r.Envelope.Payload.Span);
                     string name = _lobby.GetMemberDisplayName(r.From);
                     AddLine($"{name}: {text}");
                 }
-
-                // Snapshot/InputCommand/Rpc はここで分岐してゲーム側へ
             }
         }
 
@@ -86,15 +72,11 @@ namespace GL.Network.Application
         {
             if (string.IsNullOrWhiteSpace(text)) return;
             _chat?.Send(text);
-
-            // ※即時反映が欲しいならここを有効化。
-            // ただしSteam側が自分の発言も返す環境だと二重表示になる。
-            // AddLine($"Me: {text}");
         }
 
         public void SendPacket(PlayerId to, MessageKind kind, byte[] payload, SendReliability reliability)
         {
-            if (payload == null) payload = System.Array.Empty<byte>();
+            if (payload == null) payload = Array.Empty<byte>();
             var env = new NetEnvelope(kind, _seq++, _tick, payload);
             _transport.Send(to, env, reliability);
         }
