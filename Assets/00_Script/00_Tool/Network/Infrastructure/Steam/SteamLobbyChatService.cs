@@ -33,10 +33,14 @@ namespace GL.Network.Infrastructure.Steam
         public void Send(string text)
         {
             if (!IsReady || !_lobby.IsInLobby) return;
+
             if (string.IsNullOrWhiteSpace(text)) return;
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(text);
-            SteamMatchmaking.SendLobbyChatMsg(new CSteamID(_lobby.CurrentLobby.Value), bytes, bytes.Length);
+
+            bool ok = SteamMatchmaking.SendLobbyChatMsg(new CSteamID(_lobby.CurrentLobby.Value), bytes, bytes.Length);
+
+            //UnityEngine.Debug.Log($"[LobbyChat] Send ok={ok}, lobby={_lobby.CurrentLobby.Value}, len={bytes.Length}");
         }
 
         private void OnLobbyChatMsg(LobbyChatMsg_t data)

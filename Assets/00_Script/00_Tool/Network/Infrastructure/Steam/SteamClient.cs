@@ -23,6 +23,8 @@ namespace GL.Network.Infrastructure.Steam
         public void Tick()
         {
             if (IsReady) SteamAPI.RunCallbacks();
+
+            //UnityEngine.Debug.Log("[SteamClient] RunCallbacks");
         }
 
         public void Shutdown()
@@ -30,6 +32,7 @@ namespace GL.Network.Infrastructure.Steam
             if (!IsReady) return;
             SteamAPI.Shutdown();
             IsReady = false;
+
         }
     }
 }
