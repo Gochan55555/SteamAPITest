@@ -1,50 +1,62 @@
+﻿using System;
+using System.Collections.Generic;
 using GL.Network.Application.Ports;
 using GL.Network.Domain;
-using System;
-using System.Collections.Generic;
 
 namespace GL.Network.Infrastructure.Null
 {
     public sealed class NullLobbyService : ILobbyService
     {
         public bool IsReady => true;
-        public bool IsInLobby => _current.IsValid;
-        public LobbyId CurrentLobby => _current;
+        public bool IsInLobby => false;
+        public LobbyId CurrentLobby => default;
 
         public event Action<LobbyId> OnEntered;
         public event Action OnLeft;
 
-        private LobbyId _current;
-        private string _name = "Player";
-
         public void SetLocalDisplayName(string name)
         {
-            if (!string.IsNullOrWhiteSpace(name)) _name = name.Trim();
+            // no-op
         }
 
         public void CreateFriendsOnly(int maxMembers)
         {
-            _current = new LobbyId(1);
-            OnEntered?.Invoke(_current);
+            // no-op
         }
 
         public void Join(LobbyId lobbyId)
         {
-            _current = lobbyId.IsValid ? lobbyId : new LobbyId(1);
-            OnEntered?.Invoke(_current);
+            // Null環境でも「入ったことにする」イベントだけ投げる
+            OnEntered?.Invoke(lobbyId);
         }
 
         public void Leave()
         {
-            _current = default;
+            // Null環境でも「出たことにする」イベントだけ投げる
             OnLeft?.Invoke();
         }
 
         public void RequestLobbies(Action<IReadOnlyList<LobbyInfo>> onResult, Action<string> onError)
         {
-            onResult?.Invoke(new List<LobbyInfo>());
+            // Null実装なので常に空
+            onResult?.Invoke(Array.Empty<LobbyInfo>());
         }
 
-        public string GetMemberDisplayName(PlayerId id) => _name;
+        public string GetMemberDisplayName(PlayerId id)
+        {
+            return id.ToString();
+        }
+
+        // ロビーが存在しないので常にfalse
+        public bool IsMember(PlayerId id)
+        {
+            return false;
+        }
+
+        // 常に空
+        public IReadOnlyList<PlayerId> GetMembers()
+        {
+            return Array.Empty<PlayerId>();
+        }
     }
 }

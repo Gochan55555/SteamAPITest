@@ -1,4 +1,4 @@
-#if ONLINE_STEAM
+﻿#if ONLINE_STEAM
 using System;
 using System.Runtime.InteropServices;
 using GL.Network.Application.Ports;
@@ -11,7 +11,9 @@ namespace GL.Network.Infrastructure.Steam
     {
         private const int Channel = 0;
 
-        // NOTE: ������ SteamNetworkingSendType / flags �ɍ��킹�ď�������
+        // ✅ Steamworks.NETの古い環境でも通る送信フラグ（steamnetworkingtypes.h相当）
+        // Reliable = 8 / Unreliable = 1 が一般的（環境差があるので “動く値” を固定）
+        private const int SEND_UNRELIABLE = 1;
         private const int SEND_RELIABLE = 8;
 
         public void Send(PlayerId to, NetEnvelope env, SendReliability reliability)
@@ -36,8 +38,9 @@ namespace GL.Network.Infrastructure.Steam
             {
                 Marshal.Copy(raw, 0, p, raw.Length);
 
-                // ���܂� Reliable �Œ�iUnreliable�� sendType �𕪊򂳂��Ċg���j
-                int sendType = SEND_RELIABLE;
+                int sendType = (reliability == SendReliability.Reliable)
+                    ? SEND_RELIABLE
+                    : SEND_UNRELIABLE;
 
                 SteamNetworkingMessages.SendMessageToUser(ref id, p, (uint)raw.Length, sendType, Channel);
             }
@@ -50,6 +53,9 @@ namespace GL.Network.Infrastructure.Steam
         public int Receive(ITransport.NetReceived[] buffer)
         {
             if (buffer == null || buffer.Length == 0) return 0;
+
+            // ✅ 念のため：Bootstrapが止まっても受信が回るように
+            SteamAPI.RunCallbacks();
 
             int max = Math.Min(buffer.Length, 64);
             IntPtr[] msgs = new IntPtr[max];

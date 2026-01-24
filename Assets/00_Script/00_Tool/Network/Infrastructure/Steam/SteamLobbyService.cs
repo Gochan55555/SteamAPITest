@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using GL.Network.Application.Ports;
 using GL.Network.Domain;
 using Steamworks;
-using UnityEngine;
 
 namespace GL.Network.Infrastructure.Steam
 {
@@ -12,9 +11,9 @@ namespace GL.Network.Infrastructure.Steam
     {
         private readonly SteamClient _client;
 
-        private Callback<LobbyCreated_t> _cbCreated;
-        private Callback<LobbyEnter_t> _cbEnter;
-        private Callback<GameLobbyJoinRequested_t> _cbJoinReq;
+        private readonly Callback<LobbyCreated_t> _cbCreated;
+        private readonly Callback<LobbyEnter_t> _cbEnter;
+        private readonly Callback<GameLobbyJoinRequested_t> _cbJoinReq;
 
         private LobbyId _current;
         private string _localName = "Player";
@@ -56,6 +55,10 @@ namespace GL.Network.Infrastructure.Steam
         public void Leave()
         {
             if (!IsReady || !_current.IsValid) return;
+
+            // ✅ 退出前にセッションを閉じる（後片付け）
+            CloseAllMembersP2P();
+
             SteamMatchmaking.LeaveLobby(new CSteamID(_current.Value));
             _current = default;
             OnLeft?.Invoke();
@@ -115,6 +118,23 @@ namespace GL.Network.Infrastructure.Steam
             return string.IsNullOrEmpty(name) ? id.ToString() : name;
         }
 
+        // ✅ 追加：ロビー所属判定
+        public bool IsMember(PlayerId id)
+        {
+            if (!IsReady || !_current.IsValid || !id.IsValid) return false;
+            var members = GetMembersInternal();
+            for (int i = 0; i < members.Count; i++)
+                if (members[i].Value == id.Value) return true;
+            return false;
+        }
+
+        // ✅ 追加：メンバー一覧
+        public IReadOnlyList<PlayerId> GetMembers()
+        {
+            if (!IsReady || !_current.IsValid) return Array.Empty<PlayerId>();
+            return GetMembersInternal();
+        }
+
         // ---- callbacks ----
 
         private void OnCreated(LobbyCreated_t data)
@@ -131,6 +151,10 @@ namespace GL.Network.Infrastructure.Steam
             SteamMatchmaking.SetLobbyData(lob, "ver", UnityEngine.Application.version);
 
             ApplyLocalName();
+
+            // ✅ 重要：参加直後にP2PセッションAccept（ホスト側）
+            AcceptAllMembersP2P();
+
             OnEntered?.Invoke(_current);
         }
 
@@ -147,6 +171,10 @@ namespace GL.Network.Infrastructure.Steam
 
             _current = lobbyId;
             ApplyLocalName();
+
+            // ✅ 重要：参加直後にP2PセッションAccept（ゲスト側も）
+            AcceptAllMembersP2P();
+
             OnEntered?.Invoke(_current);
         }
 
@@ -154,6 +182,59 @@ namespace GL.Network.Infrastructure.Steam
         {
             if (!IsReady || !_current.IsValid) return;
             SteamMatchmaking.SetLobbyMemberData(new CSteamID(_current.Value), "nick", _localName);
+        }
+
+        // =========================
+        // ✅ 追加：P2PセッションAccept/Close
+        // =========================
+
+        private void AcceptAllMembersP2P()
+        {
+            if (!IsReady || !_current.IsValid) return;
+
+            var members = GetMembersInternal();
+            for (int i = 0; i < members.Count; i++)
+            {
+                var pid = members[i];
+                if (!pid.IsValid) continue;
+
+                var ident = new SteamNetworkingIdentity();
+                ident.SetSteamID(new CSteamID(pid.Value));
+
+                SteamNetworkingMessages.AcceptSessionWithUser(ref ident);
+            }
+        }
+
+        private void CloseAllMembersP2P()
+        {
+            if (!IsReady || !_current.IsValid) return;
+
+            var members = GetMembersInternal();
+            for (int i = 0; i < members.Count; i++)
+            {
+                var pid = members[i];
+                if (!pid.IsValid) continue;
+
+                var ident = new SteamNetworkingIdentity();
+                ident.SetSteamID(new CSteamID(pid.Value));
+
+                SteamNetworkingMessages.CloseSessionWithUser(ref ident);
+            }
+        }
+
+        private List<PlayerId> GetMembersInternal()
+        {
+            var list = new List<PlayerId>();
+            var lobby = new CSteamID(_current.Value);
+
+            int count = SteamMatchmaking.GetNumLobbyMembers(lobby);
+            for (int i = 0; i < count; i++)
+            {
+                var member = SteamMatchmaking.GetLobbyMemberByIndex(lobby, i);
+                list.Add(new PlayerId(member.m_SteamID));
+            }
+
+            return list;
         }
     }
 }

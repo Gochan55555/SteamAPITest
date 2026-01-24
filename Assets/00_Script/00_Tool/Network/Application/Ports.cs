@@ -1,4 +1,4 @@
-using GL.Network.Domain;
+ï»¿using GL.Network.Domain;
 using System;
 using System.Collections.Generic;
 
@@ -21,7 +21,7 @@ namespace GL.Network.Application.Ports
     }
 
     // =========================
-    // Match / Lobby (ƒ}ƒbƒ`ƒ“ƒO)
+    // Match / Lobby (ãƒãƒƒãƒãƒ³ã‚°)
     // =========================
     public interface ILobbyService
     {
@@ -40,19 +40,25 @@ namespace GL.Network.Application.Ports
 
         void RequestLobbies(Action<IReadOnlyList<LobbyInfo>> onResult, Action<string> onError);
 
-        // –¼‘Oˆø‚«iÀ‘•‘¤‚Å gnickh ‚ğ‚Â/‚½‚È‚¢‚Í©—Rj
+        // åå‰å¼•ãï¼ˆå®Ÿè£…å´ã§ â€œnickâ€ ã‚’æŒã¤/æŒãŸãªã„ã¯è‡ªç”±ï¼‰
         string GetMemberDisplayName(PlayerId id);
+
+        // âœ… è¿½åŠ ï¼šãƒ­ãƒ“ãƒ¼æ‰€å±ãƒã‚§ãƒƒã‚¯ï¼ˆå—ä¿¡ãƒ•ã‚£ãƒ«ã‚¿ã§ä½¿ã†ï¼‰
+        bool IsMember(PlayerId id);
+
+        // âœ… è¿½åŠ ï¼šãƒ¡ãƒ³ãƒãƒ¼ä¸€è¦§ï¼ˆAcceptSessionãªã©ã§ä½¿ã†ï¼‰
+        IReadOnlyList<PlayerId> GetMembers();
     }
 
     // =========================
-    // Chat (ƒ`ƒƒƒbƒg)
+    // Chat (ãƒãƒ£ãƒƒãƒˆ)
     // =========================
     public interface IChatService
     {
         bool IsReady { get; }
 
         /// <summary>
-        /// ƒ‹[ƒ€‚ÉÚ‘±iSteam Lobby Chat‚È‚çŠT”OãÚ‘±‚¾‚¯j
+        /// ãƒ«ãƒ¼ãƒ ã«æ¥ç¶šï¼ˆSteam Lobby Chatãªã‚‰æ¦‚å¿µä¸Šæ¥ç¶šã ã‘ï¼‰
         /// </summary>
         void Connect(string roomId);
 
@@ -67,13 +73,13 @@ namespace GL.Network.Application.Ports
     }
 
     // =========================
-    // Game Transport (ƒQ[ƒ€’ÊM)
+    // Game Transport (ã‚²ãƒ¼ãƒ é€šä¿¡)
     // =========================
     public interface ITransport
     {
         void Send(PlayerId to, NetEnvelope env, SendReliability reliability);
 
-        // ”z—ñ‚ÅóMiunsafe/Span‰ñ”ğj
+        // é…åˆ—ã§å—ä¿¡ï¼ˆunsafe/Spanå›é¿ï¼‰
         int Receive(ITransport.NetReceived[] buffer);
 
         public readonly struct NetReceived

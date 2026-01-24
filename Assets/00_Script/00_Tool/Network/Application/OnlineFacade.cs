@@ -1,4 +1,4 @@
-// Assets/00_Script/00_Tool/Network/Application/OnlineFacade.cs
+ï»¿// Assets/00_Script/00_Tool/Network/Application/OnlineFacade.cs
 
 using System.Collections.Generic;
 using System.Text;
@@ -17,6 +17,9 @@ namespace GL.Network.Application
 
         private ushort _seq;
         private uint _tick;
+
+        // âœ… è¿½åŠ ï¼šç›¸æ‰‹ã”ã¨ã«æœ€å¾Œã®seqã‚’è¨˜éŒ²ï¼ˆé‡è¤‡æ’é™¤ï¼‰
+        private readonly Dictionary<ulong, ushort> _lastSeqByFrom = new();
 
         public readonly List<string> ChatLog = new();
 
@@ -50,14 +53,32 @@ namespace GL.Network.Application
             {
                 var r = _recvBuf[i];
 
-                // —áFP2P‚Å Chat ‚ğ—¬‚µ‚½‚¢‚È‚ç‚±‚±‚Åˆ—
+                // âœ… ãƒ­ãƒ“ãƒ¼å¤–ã®é€šä¿¡ã¯æ¨ã¦ã‚‹ï¼ˆå®‰å…¨å´ï¼‰
+                if (_lobby == null || !_lobby.IsInLobby)
+                    continue;
+
+                // âœ… ãƒ­ãƒ“ãƒ¼ãƒ¡ãƒ³ãƒãƒ¼ä»¥å¤–ã¯æ¨ã¦ã‚‹
+                if (!_lobby.IsMember(r.From))
+                    continue;
+
+                // âœ… seqé‡è¤‡æ’é™¤ï¼ˆåŒä¸€seqï¼é‡è¤‡ã¨ã—ã¦æ¨ã¦ã‚‹ï¼‰
+                if (_lastSeqByFrom.TryGetValue(r.From.Value, out var last))
+                {
+                    ushort diff = (ushort)(r.Envelope.Seq - last);
+                    if (diff == 0)
+                        continue;
+                }
+                _lastSeqByFrom[r.From.Value] = r.Envelope.Seq;
+
+                // ä¾‹ï¼šP2Pã§ Chat ã‚’æµã—ãŸã„ãªã‚‰ã“ã“ã§å‡¦ç†
                 if (r.Envelope.Kind == MessageKind.Chat)
                 {
                     string text = Encoding.UTF8.GetString(r.Envelope.Payload.Span);
                     string name = _lobby.GetMemberDisplayName(r.From);
                     AddLine($"{name}: {text}");
                 }
-                // Snapshot/InputCommand/Rpc ‚Í‚±‚±‚Å•ªŠò‚µ‚ÄƒQ[ƒ€‘¤‚Ö
+
+                // Snapshot/InputCommand/Rpc ã¯ã“ã“ã§åˆ†å²ã—ã¦ã‚²ãƒ¼ãƒ å´ã¸
             }
         }
 
@@ -66,8 +87,8 @@ namespace GL.Network.Application
             if (string.IsNullOrWhiteSpace(text)) return;
             _chat?.Send(text);
 
-            // ¦‘¦”½‰f‚ª—~‚µ‚¢‚È‚ç‚±‚±‚ğ—LŒø‰»B
-            // ‚½‚¾‚µSteam‘¤‚ª©•ª‚Ì”­Œ¾‚à•Ô‚·ŠÂ‹«‚¾‚Æ“ñd•\¦‚É‚È‚éB
+            // â€»å³æ™‚åæ˜ ãŒæ¬²ã—ã„ãªã‚‰ã“ã“ã‚’æœ‰åŠ¹åŒ–ã€‚
+            // ãŸã ã—Steamå´ãŒè‡ªåˆ†ã®ç™ºè¨€ã‚‚è¿”ã™ç’°å¢ƒã ã¨äºŒé‡è¡¨ç¤ºã«ãªã‚‹ã€‚
             // AddLine($"Me: {text}");
         }
 
