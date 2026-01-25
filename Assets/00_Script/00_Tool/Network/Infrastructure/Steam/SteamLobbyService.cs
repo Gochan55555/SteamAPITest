@@ -71,6 +71,7 @@ namespace GL.Network.Infrastructure.Steam
             SteamMatchmaking.AddRequestLobbyListDistanceFilter(ELobbyDistanceFilter.k_ELobbyDistanceFilterWorldwide);
 
             var handle = SteamMatchmaking.RequestLobbyList();
+
             var cr = CallResult<LobbyMatchList_t>.Create((data, ioFail) =>
             {
                 if (ioFail) { onError?.Invoke("RequestLobbyList IO fail"); return; }
